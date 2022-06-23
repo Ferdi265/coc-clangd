@@ -1,9 +1,11 @@
 import {
   CompletionItemKind,
+  Diagnostic,
   Disposable,
   DocumentSelector,
   Executable,
   ExtensionContext,
+  HandleDiagnosticsSignature,
   InsertTextFormat,
   LanguageClient,
   LanguageClientOptions,
@@ -38,6 +40,7 @@ const documentSelector: DocumentSelector = [
   { scheme: 'file', language: 'objective-cpp' },
   { scheme: 'file', language: 'opencl' },
   { scheme: 'file', language: 'cuda' },
+  { scheme: 'file', language: 'asm' },
 ];
 
 export class Ctx {
@@ -95,6 +98,10 @@ export class Ctx {
       disabledFeatures,
       disableSnippetCompletion: this.config.disableSnippetCompletion,
       middleware: {
+        handleDiagnostics: (uri: string, diagnostics: Diagnostic[], next: HandleDiagnosticsSignature) => {
+            if (uri.endsWith('.S') || uri.endsWith('.s')) return;
+            return next(uri, diagnostics);
+        },
         provideOnTypeFormattingEdits: (document, position, ch, options, token, next) => {
           // coc sends "\n" when exiting insert mode, when there is no newline added to the doc.
           const line = document.getText(Range.create(position.line, 0, position.line, position.character));
@@ -143,7 +150,7 @@ export class Ctx {
             }
             return symbol;
           });
-        },
+        }
       },
     };
 
